@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vigil — Static + behavioral malware detector for Windows</title>
+<style>
+  :root {
+    --bg: #0e1116;
+    --panel: #161a22;
+    --panel-border: #232936;
+    --text: #e4e6eb;
+    --muted: #8b95a7;
+    --accent: #62c97a;
+    --accent-2: #4a9bff;
+    --warn: #f3c969;
+    --red: #ff7a7a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--text); margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.55;
+  }
+  main { max-width: 880px; margin: 0 auto; padding: 56px 24px 96px; }
+  header { border-bottom: 1px solid var(--panel-border); padding-bottom: 18px; margin-bottom: 30px; }
+  h1 { margin: 0 0 6px; font-size: 1.9rem; letter-spacing: -0.01em; }
+  h1 .accent { color: var(--accent); }
+  header .tag { color: var(--muted); font-size: 1rem; }
+  h2 { font-size: 1.15rem; margin: 36px 0 12px; padding-bottom: 6px;
+       border-bottom: 1px solid var(--panel-border); }
+  ul { padding-left: 22px; }
+  li { margin: 6px 0; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+         background: #1f2433; padding: 1px 5px; border-radius: 3px; font-size: 0.9em; }
+  pre { background: var(--panel); border: 1px solid var(--panel-border);
+        border-radius: 6px; padding: 14px 16px; overflow-x: auto;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.8rem; line-height: 1.45; }
+  .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 22px; }
+  .metric { background: var(--panel); border: 1px solid var(--panel-border);
+            border-radius: 6px; padding: 16px 18px; }
+  .metric .value { font-size: 1.55rem; font-weight: 700; color: var(--accent); }
+  .metric .label { color: var(--muted); font-size: 0.85rem; margin-top: 4px; }
+  .metric .sub   { color: var(--muted); font-size: 0.75rem; margin-top: 8px; }
+  .stack { display: grid; grid-template-columns: max-content 1fr; gap: 6px 18px; font-size: 0.9rem; }
+  .stack code { background: transparent; padding: 0; color: var(--accent-2); }
+  .stack .desc { color: var(--muted); }
+  .ghlink { display: inline-block; margin-top: 14px;
+            background: var(--panel); border: 1px solid var(--panel-border);
+            color: var(--text); padding: 8px 14px; border-radius: 6px;
+            text-decoration: none; font-size: 0.92rem; }
+  .ghlink:hover { background: #1f2433; border-color: var(--accent-2); }
+  .muted { color: var(--muted); }
+  footer { color: var(--muted); font-size: 0.8rem; margin-top: 48px;
+           padding-top: 18px; border-top: 1px solid var(--panel-border); }
+  @media (max-width: 640px) {
+    .metrics { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <h1><span class="accent">Vigil</span></h1>
+  <div class="tag">Static + behavioral malware detector for Windows. Python only — no Docker, no driver, no kernel hooks.</div>
+  <a class="ghlink" href="https://github.com/VKSFY/vigil">View on GitHub →</a>
+</header>
+
+<section>
+  <h2>Headline metrics</h2>
+  <div class="metrics">
+    <div class="metric">
+      <div class="value">97.51%</div>
+      <div class="label">Accuracy</div>
+      <div class="sub">EMBER 2018 test set, 200 k samples</div>
+    </div>
+    <div class="metric">
+      <div class="value">0.9959</div>
+      <div class="label">ROC AUC</div>
+      <div class="sub">Same eval, LightGBM @ 500 iterations</div>
+    </div>
+    <div class="metric">
+      <div class="value">2.07%</div>
+      <div class="label">False positive rate</div>
+      <div class="sub">2 072 / 100 000 clean PEs misflagged</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>What it detects</h2>
+  <ul>
+    <li><strong>PE / EXE files</strong> &mdash; LightGBM classifier on EMBER 2018 features (2381-dim vector covering byte/entropy histograms, section info, hashed imports, data directories)</li>
+    <li><strong>PowerShell scripts</strong> &mdash; LightGBM classifier on 40 hand-crafted features (obfuscation indicators, dangerous cmdlets, entropy, suspicious encodings)</li>
+    <li><strong>Office macros</strong> &mdash; <code>olevba</code> extraction + weighted rule scoring (auto-exec triggers, shell calls, downloader objects, base64/hex obfuscation)</li>
+    <li><strong>PDFs</strong> &mdash; <code>pdfminer</code> structural parse + marker regex (<code>/JavaScript</code>, <code>/Launch</code>, <code>/OpenAction</code>, chained-filter streams)</li>
+    <li><strong>Behavioral patterns</strong> &mdash; process-creation monitor flags Office &rarr; shell spawn chains, PowerShell <code>-EncodedCommand</code>, hidden-window PowerShell, Startup-folder writes</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Architecture</h2>
+<pre>                       &#x250c;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2510;
+                       &#x2502;  python -m antivirus          &#x2502;
+                       &#x2502;  (antivirus/__main__.py)       &#x2502;
+                       &#x2514;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x252c;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x252c;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2518;
+                                 &#x2502;              &#x2502;
+                       &#x250c;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x25bc;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2510;  &#x250c;&#x2500;&#x2500;&#x25bc;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2510;
+                       &#x2502;  pystray TrayApp  &#x2502;  &#x2502;  Flask dashboard&#x2502;
+                       &#x2514;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x252c;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2518;  &#x2514;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2518;
+                                 &#x2502;
+                                 &#x25bc;
+                         &#x250c;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2510;
+                         &#x2502;   Monitor    &#x2502;
+                         &#x2514;&#x2500;&#x2500;&#x252c;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x252c;&#x2500;&#x2500;&#x2518;
+                            &#x2502;        &#x2502;
+            &#x250c;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x25bc;&#x2500;&#x2510;    &#x250c;&#x2500;&#x25bc;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2510;
+            &#x2502; DirectoryWatcher&#x2502;    &#x2502;  ProcessMonitor   &#x2502;
+            &#x2502; ReadDirectoryC..&#x2502;    &#x2502;  psutil polling   &#x2502;
+            &#x2514;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x252c;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2518;    &#x2514;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x252c;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2518;
+                    &#x2502;                    &#x2502;
+       &#x250c;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x25bc;&#x2500;&#x2500;&#x2510;       &#x250c;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x25bc;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2510;
+       &#x2502;   Scanner     &#x2502;       &#x2502; SequenceDetector&#x2502;
+       &#x2502; (scan_api.py) &#x2502;       &#x2502; (rules engine)  &#x2502;
+       &#x2514;&#x2500;&#x2500;&#x252c;&#x2500;&#x2500;&#x252c;&#x2500;&#x2500;&#x252c;&#x2500;&#x2500;&#x252c;&#x2500;&#x2500;&#x2500;&#x2518;       &#x2514;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x252c;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2518;
+          &#x2502;  &#x2502;  &#x2502;  &#x2502;                    &#x2502;
+       PE PS1 Office PDF                &#x2502;
+          &#x2502;  &#x2502;  &#x2502;  &#x2502;                    &#x2502;
+          &#x25bc;  &#x25bc;  &#x25bc;  &#x25bc;                    &#x25bc;
+   &#x250c;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2510;
+   &#x2502;  logs/scan_log.jsonl                 &#x2502;
+   &#x2502;  logs/behavior_log.jsonl             &#x2502;
+   &#x2502;  quarantine/*.quar + sidecar JSON    &#x2502;
+   &#x2514;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2518;</pre>
+</section>
+
+<section>
+  <h2>Tech stack</h2>
+  <div class="stack">
+    <code>LightGBM</code><span class="desc">Gradient-boosted decision trees for PE and PowerShell classification</span>
+    <code>pefile</code><span class="desc">Human-readable PE parsing for the explanation layer</span>
+    <code>LIEF</code><span class="desc">PE parsing for the EMBER-compatible 2381-dim feature vector</span>
+    <code>scikit-learn</code><span class="desc">FeatureHasher for EMBER's hashed buckets, eval metrics, train/test split</span>
+    <code>oletools</code><span class="desc">OLE/OOXML compound-file parsing and VBA macro extraction (olevba)</span>
+    <code>pdfminer.six</code><span class="desc">PDF object-graph parsing for the structural pass</span>
+    <code>pywin32</code><span class="desc">ReadDirectoryChangesW + overlapped I/O, registry, COM for shortcut creation</span>
+    <code>psutil</code><span class="desc">Process tree polling for the behavior monitor</span>
+    <code>pystray + Pillow</code><span class="desc">Tray icon with state swap (idle grey / active green)</span>
+    <code>Flask</code><span class="desc">Local dashboard at 127.0.0.1:7331 with 4 panels and 10 s auto-refresh</span>
+    <code>requests</code><span class="desc">Model-manifest fetching for the auto-updater</span>
+  </div>
+</section>
+
+<footer>
+  Built in Python 3.10+. MIT licensed. Copyright (c) 2026 Oscar.
+</footer>
+
+</main>
+</body>
+</html>

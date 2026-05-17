@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+.pytest_cache/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+.claude/
+
+# --- Generated data --------------------------------------------------------
+# EMBER dataset (~10 GB extracted, ~1.6 GB tarball)
+data/ember*/
+data/ember_dataset_2018_2.tar.bz2
+
+# Watched / runtime working directories
+data/watched/
+
+# User feedback collected at runtime
+data/feedback/
+
+# Synthetic PowerShell corpus — regenerate with `python src/ps1_corpus.py`
+data/ps1_corpus/
+
+# Phase 4 test fixture generated from make_fake_winword.py
+data/test_samples/winword.exe
+
+# --- Runtime artifacts -----------------------------------------------------
+# Scan + behavior logs
+logs/
+quarantine/
+restored/
+
+# --- Models ----------------------------------------------------------------
+# Trained boosters are too large for git; regenerate or download via update_models.py
+models/*.lgbm
+models/archive/
+models/changelog.json
+models/retrain_log.jsonl
+models/*_metrics*
+models/*_log*
+models/models_manifest.json

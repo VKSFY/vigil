@@ -1,0 +1,15 @@
+pefile==2024.8.26
+lightgbm==4.5.0
+scikit-learn==1.5.2
+numpy==1.26.4
+pandas==2.2.3
+tqdm==4.66.5
+lief==0.14.1
+oletools==0.60.2
+pdfminer.six==20240706
+pywin32==308
+pystray==0.19.5
+Pillow==10.4.0
+psutil==6.1.0
+flask==3.0.3
+requests==2.32.3
