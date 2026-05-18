@@ -26,6 +26,7 @@ from extractor import extract as pe_rich_extract  # noqa: E402
 from ps1_extractor import extract_path as ps1_extract, FEATURE_NAMES as PS1_FEATURE_NAMES  # noqa: E402
 import office_scanner  # noqa: E402
 import pdf_scanner  # noqa: E402
+from virustotal import maybe_lookup_for_path  # noqa: E402
 
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -55,12 +56,14 @@ class ScanResult:
     reasons: list[str] = field(default_factory=list)
     top_features: list[TopFeature] = field(default_factory=list)
     error: str | None = None
+    vt_result: dict[str, Any] | None = None  # populated only when MALICIOUS + VIGIL_VT_API_KEY set
 
     def as_log_dict(self) -> dict[str, Any]:
         d = asdict(self)
-        # top_features may be empty for rule scanners — keep concise.
         if not d["top_features"]:
             d.pop("top_features")
+        if d.get("vt_result") is None:
+            d.pop("vt_result", None)
         return d
 
 
@@ -186,13 +189,18 @@ class Scanner:
                               verdict="ERROR", confidence=0.0, error=str(e))
 
         if kind == FILE_PE:
-            return self._scan_pe(path)
-        if kind == FILE_PS1:
-            return self._scan_ps1(path)
-        if kind == FILE_OFFICE:
-            return self._scan_office(path)
-        if kind == FILE_PDF:
-            return self._scan_pdf(path)
-        return ScanResult(path=path, file_type=FILE_UNKNOWN, verdict="SKIPPED",
-                          confidence=1.0,
-                          reasons=["unsupported file type"])
+            result = self._scan_pe(path)
+        elif kind == FILE_PS1:
+            result = self._scan_ps1(path)
+        elif kind == FILE_OFFICE:
+            result = self._scan_office(path)
+        elif kind == FILE_PDF:
+            result = self._scan_pdf(path)
+        else:
+            return ScanResult(path=path, file_type=FILE_UNKNOWN, verdict="SKIPPED",
+                              confidence=1.0,
+                              reasons=["unsupported file type"])
+
+        if result.verdict == "MALICIOUS":
+            result.vt_result = maybe_lookup_for_path(path)
+        return result

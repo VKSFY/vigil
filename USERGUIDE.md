@@ -69,6 +69,20 @@ From now on, every new file that lands in the watched folder gets scanned automa
 
 The monitor keeps running until you exit it (right-click tray → Exit, or close the terminal window). If you installed via `installer\install.bat`, it also starts on login.
 
+## Optional: VirusTotal second opinion
+
+If you want Vigil to also check flagged files against [VirusTotal](https://www.virustotal.com) — the big community database of malware hashes used by basically every security vendor — you can plug in a free API key. Get one at [virustotal.com/gui/join-us](https://www.virustotal.com/gui/join-us), then set it in your terminal before running Vigil:
+
+```powershell
+$env:VIGIL_VT_API_KEY = "your_key_here"
+```
+
+That's it. From then on, whenever Vigil flags something as malicious, it will also show you what VirusTotal thinks — something like "39 / 72 engines flagged this file" with a link to the full report. If the file isn't in VirusTotal's database yet, you'll see "hash not in database yet" — that's not a failure, it just means nobody's submitted it before. Vigil only sends the file's hash, never the file itself.
+
+The free VirusTotal tier limits you to 4 lookups per minute, so if you trigger more than that, some scans will skip the VT check. That's fine — Vigil still works without it.
+
+If you don't set the key, Vigil silently skips the VirusTotal step and works exactly like before.
+
 ## What happens when something is flagged
 
 When Vigil decides a file is malicious, it doesn't ask first — it moves the file into the `quarantine` folder inside the Vigil directory. The file gets renamed with a `.quar` extension so it can't accidentally be opened or run. Alongside it, Vigil writes a small `.json` file that remembers the original location, the verdict, the confidence, and the reasons.

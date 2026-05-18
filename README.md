@@ -34,6 +34,34 @@ python -m antivirus --watch C:\path\to\downloads
 
 For the full Windows install (Start Menu shortcut + autostart-on-login) run `installer\install.bat`. To train the PE pipeline you need to download EMBER 2018 first — see [How it was built → Phase 1](#phase-1--pe-classifier-on-ember).
 
+## VirusTotal Integration
+
+Vigil can optionally query the [VirusTotal](https://www.virustotal.com) public API for a community-result second opinion on anything it flags MALICIOUS. The integration is **opt-in** and **hash-only** — Vigil never uploads bytes, just the SHA256.
+
+**Setup**
+
+1. Grab a free API key at [virustotal.com/gui/join-us](https://www.virustotal.com/gui/join-us). Free tier is 4 requests/minute, 500/day.
+2. Set the environment variable before running Vigil:
+
+```powershell
+$env:VIGIL_VT_API_KEY = "your_key_here"
+```
+
+To persist across sessions, copy `.env.example` to `.env` and edit it, or set the variable in System → Environment Variables. The `.env` file is gitignored.
+
+**What you get**
+
+Every MALICIOUS verdict triggers one VT hash lookup. The CLI prints a small block under the verdict (engines hit / total + community score + report URL), the dashboard shows an amber `VT: 39/72` badge next to the verdict that links to the full VT report, and the quarantine sidecar JSON includes the parsed `vt_result` object.
+
+**Behavior on the wire**
+
+- One blocking `requests.get()` per malicious finding, 15 s timeout, no retries.
+- Free-tier 429 responses log a single warning and the lookup is skipped — no queueing, no backoff loop.
+- 404 means the hash isn't in the VT corpus yet; the CLI prints `hash not in database yet` and the sidecar records `{"found": false}`.
+- CLEAN, SKIPPED, and ERROR verdicts never trigger a lookup, so a burst of clean scans burns zero VT quota.
+
+The key is read from `VIGIL_VT_API_KEY` on every scan — never cached in a file, never written to logs or sidecars.
+
 ## Detection pipelines
 
 | File type | Method | Model | Key features |

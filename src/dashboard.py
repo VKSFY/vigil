@@ -133,6 +133,11 @@ _INDEX_HTML = """<!doctype html>
   .sev-low    { color: #8b95a7; font-weight: 600; }
   .pill { display: inline-block; padding: 1px 6px; border-radius: 4px;
           background: #232936; font-size: 0.75rem; }
+  .vt-badge { display: inline-block; margin-left: 6px; padding: 1px 6px;
+              border-radius: 4px; background: #3a2e14; color: #f3c969;
+              border: 1px solid #5a4720; font-size: 0.72rem; font-weight: 600;
+              text-decoration: none; vertical-align: middle; }
+  .vt-badge:hover { background: #4a3a1a; }
   button { background: #2c3140; color: #e4e6eb; border: 1px solid #3a4153;
            border-radius: 4px; padding: 3px 8px; cursor: pointer; font-size: 0.8rem; }
   button:hover { background: #3a4153; }
@@ -192,6 +197,15 @@ function renderModels(data){
   el.innerHTML = html + '</tbody></table>';
 }
 
+function vtBadge(vt){
+  if(!vt) return '';
+  if(vt.found === false){
+    return `<a class="vt-badge" target="_blank" rel="noopener" href="${esc(vt.permalink)}">VT: not in DB</a>`;
+  }
+  if(typeof vt.detected_by !== 'number' || typeof vt.total_engines !== 'number') return '';
+  return `<a class="vt-badge" target="_blank" rel="noopener" href="${esc(vt.permalink)}">VT: ${esc(vt.detected_by)}/${esc(vt.total_engines)}</a>`;
+}
+
 function renderScans(rows){
   const el = document.getElementById('scan-table');
   document.getElementById('scan-count').textContent = `(${rows.length})`;
@@ -201,7 +215,7 @@ function renderScans(rows){
     html += `<tr>
       <td>${esc(fmtTs(r.timestamp))}</td>
       <td><span class="pill">${esc(r.file_type)}</span></td>
-      <td class="${verdictClass(r.verdict)}">${esc(r.verdict)}</td>
+      <td class="${verdictClass(r.verdict)}">${esc(r.verdict)}${vtBadge(r.vt_result)}</td>
       <td>${fmtConf(r.confidence)}</td>
       <td class="mono">${esc(r.path)}</td>
     </tr>`;

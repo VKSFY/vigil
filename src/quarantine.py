@@ -91,6 +91,8 @@ def quarantine_file(result: ScanResult,
             for t in result.top_features
         ],
     }
+    if result.vt_result is not None:
+        metadata["vt_result"] = result.vt_result
     with open(sidecar_path, "w", encoding="utf-8") as f:
         json.dump(metadata, f, indent=2)
     return metadata
@@ -114,6 +116,8 @@ def log_scan(result: ScanResult, log_dir: str = DEFAULT_LOG_DIR,
         entry["quarantine_path"] = os.path.abspath(quarantine_path)
     if result.error:
         entry["error"] = result.error
+    if result.vt_result is not None:
+        entry["vt_result"] = result.vt_result
 
     log_path = os.path.join(log_dir, SCAN_LOG_NAME)
     line = json.dumps(entry, ensure_ascii=False) + "\n"

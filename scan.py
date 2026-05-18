@@ -27,6 +27,7 @@ from extractor import extract as rich_extract  # noqa: E402
 from ps1_extractor import extract_path as ps1_extract, FEATURE_NAMES as PS1_FEATURE_NAMES  # noqa: E402
 import office_scanner  # noqa: E402
 import pdf_scanner  # noqa: E402
+from virustotal import maybe_lookup_for_path, render_cli_block  # noqa: E402
 
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -91,6 +92,10 @@ def _scan_pe(path: str) -> int:
             sample = ", ".join(rich.suspicious_imports[:6])
             print(f"    - {rich.suspicious_count} suspicious imports: {sample}")
     print("=" * 60)
+    if verdict == "MALICIOUS":
+        vt = maybe_lookup_for_path(path)
+        if vt is not None:
+            print(render_cli_block(vt))
     return 0 if verdict == "CLEAN" else 1
 
 
@@ -134,6 +139,10 @@ def _scan_ps1(path: str) -> int:
     else:
         print("    - (none - model decided on numeric shape alone)")
     print("=" * 60)
+    if verdict == "MALICIOUS":
+        vt = maybe_lookup_for_path(path)
+        if vt is not None:
+            print(render_cli_block(vt))
     return 0 if verdict == "CLEAN" else 1
 
 
@@ -142,6 +151,10 @@ def _scan_office(path: str) -> int:
     res = office_scanner.scan_file(path)
     print()
     print(office_scanner.render(res))
+    if res.verdict == "MALICIOUS":
+        vt = maybe_lookup_for_path(path)
+        if vt is not None:
+            print(render_cli_block(vt))
     return 0 if res.verdict == "CLEAN" else 1
 
 
@@ -150,6 +163,10 @@ def _scan_pdf(path: str) -> int:
     res = pdf_scanner.scan_file(path)
     print()
     print(pdf_scanner.render(res))
+    if res.verdict == "MALICIOUS":
+        vt = maybe_lookup_for_path(path)
+        if vt is not None:
+            print(render_cli_block(vt))
     return 0 if res.verdict == "CLEAN" else 1
 
 
