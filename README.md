@@ -182,6 +182,69 @@ Old models go to `models/archive/ps1_model_v<N>.lgbm` and the archive keeps the 
 - **requests 2.32** — model-manifest fetching for `src/update_models.py`
 - **numpy + pandas** — the usual
 
+## FAQ
+
+<details>
+<summary><strong>Will this slow my computer down?</strong></summary>
+
+The filesystem watcher is event-driven (`ReadDirectoryChangesW`) — it does no work until a file lands in the watched directory. Per-scan cost is ~2 ms model inference plus file I/O. The behavior monitor polls `psutil.pids()` every 300 ms by default and only fetches attributes for new PIDs (the "cheap diff" fix from Phase 4), so the polling thread sits around 0.1 % CPU on a typical 200-process system. High-churn directories (build outputs, CI workspaces) will obviously cost more — exclude them via `extra_excludes`.
+</details>
+
+<details>
+<summary><strong>What happens to quarantined files — are they deleted?</strong></summary>
+
+No. `quarantine_file()` moves the bytes into `quarantine/<sha256>.quar` and writes a sidecar JSON capturing the original path, verdict, confidence, reasons, and top features. The `.quar` extension is purely cosmetic — it's there so a stray double-click can't execute the file. Nothing is ever deleted unless you hit Delete in the dashboard's Quarantine panel.
+</details>
+
+<details>
+<summary><strong>How do I know it's actually working?</strong></summary>
+
+Three signals. The tray icon swaps from grey to green when the watcher thread is alive. The dashboard at `127.0.0.1:7331` lists the last N scans with timestamps and auto-refreshes every 10 s. And `logs/scan_log.jsonl` is appended to on every scan — `tail -f` (or `Get-Content -Wait`) it during a copy into the watched folder for a live confirmation. If the tray icon is green but no entries appear after dropping a file, check the console: `monitor.py` prints a startup warning if the `DirectoryWatcher` thread died inside `_run`.
+</details>
+
+<details>
+<summary><strong>Is this a replacement for Windows Defender?</strong></summary>
+
+No. Vigil has no kernel driver, no signed-definition update channel, no cloud lookups, and no AMSI integration. Treat it as a complementary opinion-getter — it catches a different class of things (macros, suspicious PowerShell, Office-spawn-shell behavior chains, PE files Defender's signatures haven't seen yet) and gives you a local audit trail. Run both.
+</details>
+
+<details>
+<summary><strong>The dashboard shows "no changelog yet" — is something broken?</strong></summary>
+
+No. The model-versions panel reads `models/retrain_log.jsonl`, which is written by `src/retrain.py`. Until you've run at least one retrain, the file doesn't exist and the panel renders the empty state. Run `python -m src.retrain --type ps1` once (it'll need 50+ feedback entries) and an entry will appear — even rejected retrains are logged.
+</details>
+
+<details>
+<summary><strong>A file I know is safe got flagged — what do I do?</strong></summary>
+
+Restore from the dashboard, then submit a correction:
+
+```powershell
+python scan.py feedback path\to\file.ext clean
+```
+
+This appends to `data/feedback/feedback.jsonl` with the file's feature vector and your label. Once `feedback.jsonl` has 50+ rows past the last-retrain marker, `python -m src.retrain --type ps1` will train a candidate booster and replace the model **only if F1 strictly improves** on the same held-out split. Office/PDF detections are rule-based, so feedback is recorded but doesn't auto-tune the weights — you'd edit `office_scanner.py` / `pdf_scanner.py` thresholds by hand.
+</details>
+
+<details>
+<summary><strong>How do I uninstall this?</strong></summary>
+
+Three steps:
+
+```powershell
+# 1. Remove the Run-key autostart
+reg delete HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v AVMonitor /f
+
+# 2. Remove the Start Menu shortcut
+del "%APPDATA%\Microsoft\Windows\Start Menu\Programs\Vigil.lnk"
+
+# 3. Delete the repo
+rmdir /s /q vigil
+```
+
+No service is installed, no registry hive is touched beyond the single Run key. The `quarantine/`, `logs/`, and `data/feedback/` folders all live inside the repo root, so removing the folder removes everything.
+</details>
+
 ## License
 
 [MIT](LICENSE) — Copyright (c) 2026 Oscar.

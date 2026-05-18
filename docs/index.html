@@ -52,6 +52,38 @@
             text-decoration: none; font-size: 0.92rem; }
   .ghlink:hover { background: #1f2433; border-color: var(--accent-2); }
   .muted { color: var(--muted); }
+  .lede { color: var(--text); font-size: 0.98rem; max-width: 64ch; }
+  .steps { counter-reset: step; padding-left: 0; list-style: none; }
+  .steps li { counter-increment: step; margin: 0 0 14px;
+              padding-left: 36px; position: relative; }
+  .steps li::before {
+    content: counter(step); position: absolute; left: 0; top: 0;
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--panel); border: 1px solid var(--panel-border);
+    color: var(--accent); font-size: 0.78rem; font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  details.faq { background: var(--panel); border: 1px solid var(--panel-border);
+                border-radius: 6px; margin: 8px 0; overflow: hidden; }
+  details.faq + details.faq { margin-top: 8px; }
+  details.faq summary {
+    cursor: pointer; padding: 12px 16px; font-size: 0.95rem;
+    list-style: none; position: relative; padding-right: 40px;
+    color: var(--text); user-select: none;
+  }
+  details.faq summary::-webkit-details-marker { display: none; }
+  details.faq summary::after {
+    content: "+"; position: absolute; right: 16px; top: 50%;
+    transform: translateY(-50%); color: var(--muted); font-size: 1.2rem;
+    transition: transform 0.15s ease;
+  }
+  details.faq[open] summary::after { content: "−"; }
+  details.faq summary:hover { background: #1c2230; }
+  details.faq .body {
+    padding: 0 16px 14px; color: var(--muted); font-size: 0.92rem;
+    border-top: 1px solid var(--panel-border); padding-top: 12px;
+  }
+  details.faq .body code { background: #1f2433; }
   footer { color: var(--muted); font-size: 0.8rem; margin-top: 48px;
            padding-top: 18px; border-top: 1px solid var(--panel-border); }
   @media (max-width: 640px) {
@@ -98,6 +130,24 @@
     <li><strong>PDFs</strong> &mdash; <code>pdfminer</code> structural parse + marker regex (<code>/JavaScript</code>, <code>/Launch</code>, <code>/OpenAction</code>, chained-filter streams)</li>
     <li><strong>Behavioral patterns</strong> &mdash; process-creation monitor flags Office &rarr; shell spawn chains, PowerShell <code>-EncodedCommand</code>, hidden-window PowerShell, Startup-folder writes</li>
   </ul>
+</section>
+
+<section>
+  <h2>How it works</h2>
+  <p class="lede">Point Vigil at a file and it figures out what kind of file it is, then runs the right checks for that type — a learned model for programs and PowerShell scripts, structural rules for Word documents and PDFs. Turn on the realtime monitor and it watches a folder of your choice (Downloads is the usual pick), scanning every new file the moment it appears. If anything looks dangerous, the file is moved into a quarantine folder and the verdict shows up in a small local dashboard in your browser. Nothing leaves your machine — there's no cloud, no telemetry, no account.</p>
+</section>
+
+<section>
+  <h2>Get started</h2>
+  <p class="lede">Three commands, assuming you already have Python 3.10+ on PATH:</p>
+  <ol class="steps">
+    <li><pre>git clone https://github.com/VKSFY/vigil
+cd vigil
+pip install -r requirements.txt</pre></li>
+    <li><pre>python scan.py path\to\suspicious.exe</pre></li>
+    <li><pre>python -m antivirus --watch C:\Users\You\Downloads</pre></li>
+  </ol>
+  <p class="muted" style="font-size: 0.88rem; margin-top: 4px;">Step 2 scans one file and prints the verdict. Step 3 starts the tray app + dashboard and watches the folder you point it at. Full walkthrough in the <a class="ghlink" style="margin-top: 0; padding: 4px 10px; font-size: 0.85rem;" href="https://github.com/VKSFY/vigil/blob/main/USERGUIDE.md">user guide</a>.</p>
 </section>
 
 <section>
@@ -151,6 +201,35 @@
     <code>Flask</code><span class="desc">Local dashboard at 127.0.0.1:7331 with 4 panels and 10 s auto-refresh</span>
     <code>requests</code><span class="desc">Model-manifest fetching for the auto-updater</span>
   </div>
+</section>
+
+<section>
+  <h2>FAQ</h2>
+
+  <details class="faq">
+    <summary>Will this slow my computer down?</summary>
+    <div class="body">No. The filesystem watcher is event-driven, so it does nothing until a file lands in the watched folder. Each scan takes about 2 ms of model time plus disk I/O. The behavior monitor polls process IDs cheaply and only fetches details for new PIDs, sitting around 0.1 % CPU on a typical machine.</div>
+  </details>
+
+  <details class="faq">
+    <summary>What happens to quarantined files — are they deleted?</summary>
+    <div class="body">No. They're moved to <code>quarantine/&lt;sha256&gt;.quar</code> with a sidecar JSON that records where they came from, why they were flagged, and the model's confidence. The <code>.quar</code> rename is purely there to prevent accidental execution. Files stay until you Restore or Delete them from the dashboard.</div>
+  </details>
+
+  <details class="faq">
+    <summary>Is this a replacement for Windows Defender?</summary>
+    <div class="body">No. Vigil has no kernel driver, no signed-definition update channel, and no cloud lookups. Defender is your real protection — Vigil is a complementary tool that gives you a second opinion (especially on macros, PowerShell, and process behavior) and a local audit trail you control. Run both.</div>
+  </details>
+
+  <details class="faq">
+    <summary>A file I know is safe got flagged — what do I do?</summary>
+    <div class="body">Open the dashboard, hit Restore in the Quarantine panel, then submit a correction: <code>python scan.py feedback path\to\file.ext clean</code>. The PowerShell model re-trains from feedback once you've collected 50+ corrections and only replaces itself if F1 strictly improves on the held-out split.</div>
+  </details>
+
+  <details class="faq">
+    <summary>How do I uninstall it?</summary>
+    <div class="body">Remove the autostart key: <code>reg delete HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v AVMonitor /f</code>, delete the Start Menu shortcut at <code>%APPDATA%\Microsoft\Windows\Start Menu\Programs\Vigil.lnk</code>, then delete the <code>vigil</code> folder. No service is installed; everything lives inside the repo directory.</div>
+  </details>
 </section>
 
 <footer>
